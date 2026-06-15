@@ -2,6 +2,8 @@
 
 A zero-dependency web dashboard that visualizes your **Claude Code** (and optional **GitHub Copilot Chat**) usage by parsing local session logs.
 
+<img width="1762" height="1103" alt="image" src="https://github.com/user-attachments/assets/8ab0fa95-c17b-439d-8a12-bd1c5a887e19" />
+
 > 한국어 설명은 아래 [한국어](#한국어) 섹션을 참고하세요.
 
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)

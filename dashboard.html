@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 코딩 도구 사용 통계</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:   #3b82f6;
+  --green:  #22c55e;
+  --purple: #a855f7;
+  --gray:   #94a3b8;
+  --orange: #f97316;
+  --red:    #ef4444;
+  --teal:   #14b8a6;
+  --yellow: #eab308;
+  /* 라이트 테마 */
+  --bg:          #f1f5f9;
+  --card:        #ffffff;
+  --text:        #1e293b;
+  --muted:       #64748b;
+  --border:      #e2e8f0;
+  --radius:      10px;
+  --shadow:      0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --chart-grid:  #f1f5f9;
+  --chart-tick:  #64748b;
+  --heatmap-empty: #f1f5f9;
+}
+
+/* 미드나잇 다크 테마 */
+[data-theme="dark"] {
+  --bg:          #0d1117;
+  --card:        #161b22;
+  --text:        #e6edf3;
+  --muted:       #8b949e;
+  --border:      #30363d;
+  --shadow:      0 1px 3px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+  --chart-grid:  #21262d;
+  --chart-tick:  #8b949e;
+  --heatmap-empty: #161b22;
+}
+
+/* 다크 테마 배지 — 반투명 */
+[data-theme="dark"] .badge-blue   { background: rgba(59,130,246,.2);  color: #93c5fd; }
+[data-theme="dark"] .badge-green  { background: rgba(34,197,94,.2);   color: #86efac; }
+[data-theme="dark"] .badge-purple { background: rgba(168,85,247,.2);  color: #d8b4fe; }
+[data-theme="dark"] .badge-orange { background: rgba(249,115,22,.2);  color: #fdba74; }
+[data-theme="dark"] .badge-gray   { background: rgba(148,163,184,.15);color: #94a3b8; }
+[data-theme="dark"] .badge-teal   { background: rgba(20,184,166,.2);  color: #5eead4; }
+[data-theme="dark"] .badge-red    { background: rgba(239,68,68,.2);   color: #fca5a5; }
+[data-theme="dark"] .badge-yellow { background: rgba(234,179,8,.2);   color: #fde047; }
+
+/* 다크 테마 필터 셀렉트 */
+[data-theme="dark"] select.filter-select {
+  background: #161b22;
+  color: #e6edf3;
+  border-color: #30363d;
+}
+[data-theme="dark"] .btn {
+  background: #161b22;
+  color: #e6edf3;
+  border-color: #30363d;
+}
+[data-theme="dark"] .btn:hover { background: #21262d; }
+[data-theme="dark"] .btn-primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+[data-theme="dark"] .btn-primary:hover { background: #2563eb; }
+
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── 헤더 ── */
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px 0;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow);
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+header h1 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+/* ── 탭 바 ── */
+.tab-bar { display: flex; gap: 0; border-bottom: none; }
+.tab-btn {
+  padding: 9px 22px;
+  border: none; background: none;
+  font-size: .88rem; font-weight: 600; color: var(--muted);
+  cursor: pointer; border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-btn .tab-icon { font-size: 1rem; }
+
+/* ── 필터 바 ── */
+.filter-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 24px; background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+.btn {
+  padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); font-size: .8rem;
+  cursor: pointer; transition: background .15s; white-space: nowrap;
+}
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-primary:hover { background: #2563eb; }
+select.filter-select {
+  padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); font-size: .8rem; color: var(--text); cursor: pointer;
+}
+
+/* ── 메인 ── */
+main { max-width: 1400px; margin: 0 auto; padding: 18px; }
+
+#status-msg {
+  background: #fef9c3; border: 1px solid #fde047; border-radius: var(--radius);
+  padding: 10px 16px; margin-bottom: 14px; font-size: .85rem; display: none;
+}
+#status-msg.error { background: #fee2e2; border-color: #fca5a5; }
+#status-msg.show  { display: block; }
+
+/* ── 탭 패널 ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── 요약 카드 ── */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+}
+@media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 480px) { .summary-grid { grid-template-columns: 1fr; } }
+
+.stat-card {
+  background: var(--card); border-radius: var(--radius); padding: 16px 18px;
+  box-shadow: var(--shadow); border-left: 4px solid transparent;
+}
+.stat-card.blue   { border-left-color: var(--blue); }
+.stat-card.green  { border-left-color: var(--green); }
+.stat-card.purple { border-left-color: var(--purple); }
+.stat-card.orange { border-left-color: var(--orange); }
+.stat-card.teal   { border-left-color: var(--teal); }
+
+.stat-label { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+.stat-value { font-size: 1.55rem; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-sub   { font-size: .76rem; color: var(--muted); }
+
+/* ── 차트 그리드 ── */
+.charts-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 16px; }
+.charts-grid .full-width { grid-column: 1/-1; }
+@media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
+
+.chart-card { background: var(--card); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.chart-title { font-size: .84rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+.chart-wrap  { position: relative; }
+
+/* ── 히트맵 ── */
+#heatmap-container, #cp-heatmap-container { overflow-x: auto; }
+.heatmap-table { border-collapse: collapse; font-size: .7rem; width: 100%; }
+.heatmap-table th { padding: 2px 5px; color: var(--muted); font-weight: 600; text-align: center; min-width: 34px; }
+.heatmap-table td { width: 34px; height: 26px; border-radius: 3px; transition: opacity .15s; cursor: default; }
+.heatmap-table td:hover { opacity: .75; }
+.heatmap-label { color: var(--muted); font-weight: 600; text-align: right; padding-right: 8px; white-space: nowrap; }
+
+/* ── 세션/이벤트 테이블 ── */
+.section-card { background: var(--card); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+.section-title { font-size: .86rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.table-wrap { overflow-x: auto; }
+table.data-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+table.data-table th { background: var(--bg); padding: 7px 11px; text-align: left; font-weight: 600; color: var(--muted); white-space: nowrap; border-bottom: 1px solid var(--border); }
+table.data-table td { padding: 8px 11px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.data-table tr:hover td { background: var(--bg); }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 600; white-space: nowrap; }
+.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+.badge-green  { background: #dcfce7; color: #15803d; }
+.badge-purple { background: #f3e8ff; color: #7e22ce; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+.badge-gray   { background: #f1f5f9; color: #475569; }
+.badge-teal   { background: #ccfbf1; color: #0f766e; }
+.badge-red    { background: #fee2e2; color: #b91c1c; }
+.badge-yellow { background: #fef9c3; color: #854d0e; }
+
+.ellipsis { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+
+/* ── 모달 ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: var(--radius); padding: 22px; max-width: 580px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.modal-header h2 { font-size: .95rem; font-weight: 700; }
+.modal-close { cursor: pointer; font-size: 1.2rem; color: var(--muted); background: none; border: none; }
+.modal-row { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .81rem; }
+.modal-key  { font-weight: 600; min-width: 110px; color: var(--muted); }
+.modal-prompt { background: var(--bg); border-radius: 6px; padding: 10px; font-size: .8rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin-top: 8px; }
+
+.hide-sm { display: table-cell; }
+@media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- ── 헤더 ── -->
+<header>
+  <div class="header-top">
+    <h1>📊 AI 코딩 도구 사용 통계</h1>
+    <button id="theme-toggle" onclick="toggleTheme()" title="테마 전환" style="
+      display:flex;align-items:center;gap:7px;
+      padding:6px 14px;border-radius:20px;
+      border:1px solid var(--border);background:var(--card);
+      color:var(--text);font-size:.82rem;font-weight:600;
+      cursor:pointer;transition:all .2s;white-space:nowrap;
+    ">
+      <span id="theme-icon">🌙</span>
+      <span id="theme-label">다크 모드</span>
+    </button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="claude">
+      <span class="tab-icon">🤖</span> Claude Code
+    </button>
+    <button class="tab-btn" data-tab="copilot">
+      <span class="tab-icon">✈️</span> GitHub Copilot Chat
+    </button>
+  </div>
+</header>
+
+<!-- ── 필터 바 ── -->
+<div class="filter-bar" id="filter-bar-claude">
+  <select id="cc-days" class="filter-select">
+    <option value="7">최근 7일</option>
+    <option value="14">최근 14일</option>
+    <option value="30">최근 30일</option>
+    <option value="90">최근 90일</option>
+    <option value="0" selected>전체</option>
+  </select>
+  <select id="cc-model" class="filter-select">
+    <option value="">전체 모델</option>
+  </select>
+  <select id="cc-project" class="filter-select"><option value="">전체 프로젝트</option></select>
+  <select id="cc-task" class="filter-select">
+    <option value="">전체 유형</option>
+    <option value="code_write">코드 작성</option>
+    <option value="debugging">디버깅</option>
+    <option value="refactoring">리팩토링</option>
+    <option value="testing">테스트</option>
+    <option value="documentation">문서화</option>
+    <option value="planning">기획/계획</option>
+    <option value="ui_ux">UI/UX</option>
+    <option value="deployment">배포</option>
+    <option value="performance">성능</option>
+    <option value="review">리뷰</option>
+    <option value="other">기타</option>
+  </select>
+  <button class="btn btn-primary" id="cc-refresh">↺ 새로고침</button>
+  <button class="btn" id="cc-export-json">⬇ JSON</button>
+  <button class="btn" id="cc-export-csv">⬇ CSV</button>
+</div>
+
+<div class="filter-bar" id="filter-bar-copilot" style="display:none">
+  <select id="cp-days" class="filter-select">
+    <option value="7">최근 7일</option>
+    <option value="14">최근 14일</option>
+    <option value="30" selected>최근 30일</option>
+    <option value="90">최근 90일</option>
+    <option value="0">전체</option>
+  </select>
+  <select id="cp-model" class="filter-select"><option value="">전체 모델</option></select>
+  <select id="cp-mode" class="filter-select"><option value="">전체 모드</option></select>
+  <button class="btn btn-primary" id="cp-refresh">↺ 새로고침</button>
+  <button class="btn" id="cp-export-csv">⬇ CSV</button>
+</div>
+
+<main>
+  <div id="status-msg"></div>
+
+  <!-- ════════════════════════════════════════
+       CLAUDE CODE 탭
+  ════════════════════════════════════════ -->
+  <div class="tab-panel active" id="panel-claude">
+
+    <div class="summary-grid">
+      <div class="stat-card blue">
+        <div class="stat-label">총 토큰 사용량</div>
+        <div class="stat-value" id="cc-total-tokens">—</div>
+        <div class="stat-sub"  id="cc-daily-avg">일평균 —</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">총 세션 수</div>
+        <div class="stat-value" id="cc-total-sessions">—</div>
+        <div class="stat-sub"  id="cc-avg-dur">평균 — 분</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">예상 비용 (USD)</div>
+        <div class="stat-value" id="cc-total-cost">—</div>
+        <div class="stat-sub"  id="cc-cost-per">세션당 —</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">최다 활동 시간대</div>
+        <div class="stat-value" id="cc-peak-hour">—</div>
+        <div class="stat-sub"  id="cc-peak-tok">해당 시간 —</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card full-width">
+        <div class="chart-title">일별 토큰 사용량</div>
+        <div class="chart-wrap" style="height:210px"><canvas id="cc-chart-daily"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">시간대별 활동 패턴</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cc-chart-hourly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">모델별 사용 분포</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cc-chart-model"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">작업 유형별 토큰 사용량</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cc-chart-task"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">프로젝트별 사용 현황 (상위 10)</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cc-chart-project"></canvas></div>
+      </div>
+      <div class="chart-card full-width">
+        <div class="chart-title">주간 활동 히트맵 (요일 × 시간대)</div>
+        <div id="heatmap-container"></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">
+        작업 목록 <span style="font-weight:400;font-size:.8rem;color:var(--muted)">(<span id="cc-session-count">0</span>개)</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>날짜/시간</th><th>프로젝트</th>
+            <th class="hide-sm">작업 요약</th>
+            <th>모델</th><th>토큰 (In/Out)</th>
+            <th class="hide-sm">응답시간</th><th>비용</th>
+          </tr></thead>
+          <tbody id="cc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /panel-claude -->
+
+  <!-- ════════════════════════════════════════
+       COPILOT CHAT 탭
+  ════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-copilot">
+
+    <div class="summary-grid">
+      <div class="stat-card blue">
+        <div class="stat-label">총 요청 수</div>
+        <div class="stat-value" id="cp-total-req">—</div>
+        <div class="stat-sub"  id="cp-daily-avg">일평균 —</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">성공률</div>
+        <div class="stat-value" id="cp-success-rate">—</div>
+        <div class="stat-sub"  id="cp-success-count">성공 — 건</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="stat-label">평균 응답 시간</div>
+        <div class="stat-value" id="cp-avg-dur">—</div>
+        <div class="stat-sub"  id="cp-dur-range">범위 —</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">최다 활동 시간대</div>
+        <div class="stat-value" id="cp-peak-hour">—</div>
+        <div class="stat-sub"  id="cp-peak-req">해당 시간 —</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card full-width">
+        <div class="chart-title">일별 요청 수 (성공 / 실패)</div>
+        <div class="chart-wrap" style="height:210px"><canvas id="cp-chart-daily"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">시간대별 요청 패턴</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cp-chart-hourly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">모델별 사용 분포</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cp-chart-model"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">모드별 요청 분포</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cp-chart-mode"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">모델별 평균 응답 시간 (ms)</div>
+        <div class="chart-wrap" style="height:195px"><canvas id="cp-chart-dur"></canvas></div>
+      </div>
+      <div class="chart-card full-width">
+        <div class="chart-title">주간 활동 히트맵 (요일 × 시간대)</div>
+        <div id="cp-heatmap-container"></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">
+        <span>작업 세션 요약 <span style="font-weight:400;font-size:.8rem;color:var(--muted)">(<span id="cp-session-total">0</span>개 세션 · <span id="cp-event-count">0</span>건 요청)</span></span>
+        <span style="font-size:.78rem;color:var(--muted)">15분 간격으로 세션 자동 분류</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>날짜/시간</th>
+            <th>작업 유형</th>
+            <th>주 모델</th>
+            <th>요청 수</th>
+            <th>작업량</th>
+            <th>평균 응답</th>
+            <th>상태</th>
+          </tr></thead>
+          <tbody id="cp-tbody"></tbody>
+        </table>
+      </div>
+      <div id="cp-pagination" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0;font-size:.82rem;"></div>
+    </div>
+  </div><!-- /panel-copilot -->
+</main>
+
+<!-- ── 모달 ── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>세션 상세</h2>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// 테마
+// ══════════════════════════════════════════════
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  const isDark = theme === "dark";
+  document.getElementById("theme-icon").textContent  = isDark ? "☀️" : "🌙";
+  document.getElementById("theme-label").textContent = isDark ? "라이트 모드" : "다크 모드";
+  // Chart.js 전역 색상 동기화
+  Chart.defaults.color       = isDark ? "#8b949e" : "#64748b";
+  Chart.defaults.borderColor = isDark ? "#21262d" : "#f1f5f9";
+  localStorage.setItem("theme", theme);
+  // 차트 재렌더링 (데이터가 로드된 경우에만)
+  if (ccRaw)  renderClaude();
+  if (cpRaw)  renderCopilot();
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute("data-theme") || "light";
+  applyTheme(cur === "dark" ? "light" : "dark");
+}
+
+// 저장된 테마 복원 (차트 로드 전이므로 Chart.js 기본값만 설정)
+(function initTheme() {
+  const saved = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", saved);
+  if (saved === "dark") {
+    document.getElementById("theme-icon").textContent  = "☀️";
+    document.getElementById("theme-label").textContent = "라이트 모드";
+    Chart.defaults.color       = "#8b949e";
+    Chart.defaults.borderColor = "#21262d";
+  }
+})();
+
+// 공통 유틸
+// ══════════════════════════════════════════════
+const fmtNum  = n => (n == null ? "—" : n.toLocaleString());
+const fmtK    = n => n >= 1000 ? (n/1000).toFixed(1)+"k" : String(n);
+const fmtMs   = ms => ms >= 1000 ? (ms/1000).toFixed(1)+"s" : ms+"ms";
+const fmtCost = n => (n == null ? "—" : "$"+n.toFixed(4));
+const escHtml = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+const charts = {};
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+function showStatus(msg, isError=false){
+  const el = document.getElementById("status-msg");
+  el.textContent = msg;
+  el.className = "show" + (isError?" error":"");
+  if(!isError) setTimeout(()=>el.classList.remove("show"), 3500);
+}
+
+const themeGrid  = () => getComputedStyle(document.documentElement).getPropertyValue("--chart-grid").trim();
+const themeEmpty = () => getComputedStyle(document.documentElement).getPropertyValue("--heatmap-empty").trim();
+const themeDark  = () => document.documentElement.getAttribute("data-theme") === "dark";
+const themeLegendText = () => (themeDark() ? "#ffffff" : "#111111");
+
+function interpolateBlue(t){
+  if(t<=0) return themeEmpty();
+  const [sr,sg,sb] = themeDark() ? [22,27,34]  : [241,245,249];
+  const [er,eg,eb] = themeDark() ? [96,165,250] : [59,130,246];
+  return `rgb(${Math.round(sr+(er-sr)*t)},${Math.round(sg+(eg-sg)*t)},${Math.round(sb+(eb-sb)*t)})`;
+}
+function interpolateTeal(t){
+  if(t<=0) return themeEmpty();
+  const [sr,sg,sb] = themeDark() ? [22,27,34]   : [241,245,249];
+  const [er,eg,eb] = themeDark() ? [94,234,212]  : [20,184,166];
+  return `rgb(${Math.round(sr+(er-sr)*t)},${Math.round(sg+(eg-sg)*t)},${Math.round(sb+(eb-sb)*t)})`;
+}
+function buildHeatmap(containerId, heatmapData, colorFn){
+  const container = document.getElementById(containerId);
+  const max = Math.max(...Object.values(heatmapData),1);
+  const days = ["월","화","수","목","금","토","일"];
+  let html = '<table class="heatmap-table"><thead><tr><th></th>';
+  days.forEach(d=>{ html+=`<th>${d}</th>`; });
+  html+="</tr></thead><tbody>";
+  for(let h=0;h<24;h++){
+    html+=`<tr><td class="heatmap-label">${h}시</td>`;
+    for(let wd=0;wd<7;wd++){
+      const val=heatmapData[`${wd}_${h}`]||0;
+      const bg=colorFn(val/max);
+      html+=`<td style="background:${bg}" title="${val?fmtNum(val):""}"></td>`;
+    }
+    html+="</tr>";
+  }
+  html+="</tbody></table>";
+  container.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// 탭 전환
+// ══════════════════════════════════════════════
+let activeTab = "claude";
+
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const tab = btn.dataset.tab;
+    if(tab===activeTab) return;
+    activeTab = tab;
+
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+    document.getElementById("panel-"+tab).classList.add("active");
+    document.getElementById("filter-bar-claude").style.display = tab==="claude"?"flex":"none";
+    document.getElementById("filter-bar-copilot").style.display = tab==="copilot"?"flex":"none";
+  });
+});
+
+// ══════════════════════════════════════════════
+// ── CLAUDE CODE ──
+// ══════════════════════════════════════════════
+let ccRaw = null, ccFiltered = [], ccFilteredRows = [];
+
+const TASK_LABELS = {
+  code_write:"코드 작성", debugging:"디버깅", refactoring:"리팩토링",
+  testing:"테스트", documentation:"문서화", planning:"기획/계획",
+  ui_ux:"UI/UX", deployment:"배포", performance:"성능", review:"리뷰", other:"기타",
+};
+const TASK_COLORS = {
+  code_write:"#3b82f6", debugging:"#ef4444", refactoring:"#a855f7",
+  testing:"#22c55e", documentation:"#f97316", planning:"#0ea5e9",
+  ui_ux:"#ec4899", deployment:"#f59e0b", performance:"#10b981", review:"#14b8a6", other:"#94a3b8",
+};
+const CC_MODEL_PALETTE = ["#3b82f6", "#a855f7", "#22c55e", "#f97316", "#14b8a6", "#eab308", "#ef4444", "#6366f1", "#ec4899", "#06b6d4"];
+
+async function loadClaude(){
+  showStatus("Claude Code 데이터 로딩 중…");
+  try {
+    const res = await fetch("usage_data.json?t="+Date.now());
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    ccRaw = await res.json();
+    showStatus("✓ Claude Code 데이터 로드 완료");
+    populateCCModelFilter();
+    populateCCProjectFilter();
+    applyCCFilters();
+  } catch(e){
+    showStatus("❌ usage_data.json 로드 실패 — parse_claude_logs.py 를 먼저 실행하세요. ("+e.message+")", true);
+  }
+}
+
+function populateCCModelFilter(){
+  const sel = document.getElementById("cc-model");
+  sel.innerHTML = '<option value="">전체 모델</option>';
+  const source = (ccRaw.work_items && ccRaw.work_items.length) ? ccRaw.work_items : (ccRaw.sessions || []);
+  const models = [...new Set(source.map(s=>s.model_detail||s.model).filter(Boolean))].sort();
+  models.forEach(m=>{
+    const opt=document.createElement("option");
+    opt.value=m;
+    opt.textContent=m;
+    sel.appendChild(opt);
+  });
+}
+
+function populateCCProjectFilter(){
+  const sel = document.getElementById("cc-project");
+  sel.innerHTML = '<option value="">전체 프로젝트</option>';
+  const projects = [...new Set((ccRaw.sessions||[]).map(s=>s.project_name))].sort();
+  projects.forEach(p=>{
+    const opt=document.createElement("option"); opt.value=p;
+    opt.textContent=p.length>35?p.slice(0,32)+"…":p; sel.appendChild(opt);
+  });
+}
+
+function applyCCFilters(){
+  if(!ccRaw) return;
+  const days    = parseInt(document.getElementById("cc-days").value);
+  const model   = document.getElementById("cc-model").value;
+  const project = document.getElementById("cc-project").value;
+  const task    = document.getElementById("cc-task").value;
+  const cutoff  = days>0 ? new Date(Date.now()-days*86400000).toISOString() : null;
+  const sessions = ccRaw.sessions || [];
+  const workRows = (ccRaw.work_items && ccRaw.work_items.length) ? ccRaw.work_items : sessions;
+
+  ccFiltered = sessions.filter(s=>{
+    if(cutoff && s.timestamp && s.timestamp<cutoff) return false;
+    const m = s.model_detail || s.model || s.model_display;
+    if(model && m!==model) return false;
+    if(project && s.project_name!==project) return false;
+    if(task && s.task_type!==task) return false;
+    return true;
+  });
+
+  ccFilteredRows = workRows.filter(s=>{
+    if(cutoff && s.timestamp && s.timestamp<cutoff) return false;
+    const m = s.model_detail || s.model || s.model_display;
+    if(model && m!==model) return false;
+    if(project && s.project_name!==project) return false;
+    if(task && s.task_type!==task) return false;
+    if((s.total_tokens||0) <= 0 || (s.cost_usd||0) <= 0) return false;
+    return true;
+  });
+  renderClaude();
+}
+
+function renderClaude(){
+  renderCCSummary(); renderCCDaily(); renderCCHourly();
+  renderCCModel();   renderCCTask();  renderCCProject();
+  renderCCHeatmap(); renderCCTable();
+}
+
+function renderCCSummary(){
+  const ss=ccFiltered;
+  if(!ss.length){
+    ["cc-total-tokens","cc-total-sessions","cc-total-cost","cc-peak-hour"].forEach(id=>{ document.getElementById(id).textContent="—"; });
+    return;
+  }
+  const totTok  = ss.reduce((a,s)=>a+s.total_tokens,0);
+  const totCost = ss.reduce((a,s)=>a+s.cost_usd,0);
+  const responseValues = ss.map(s=>s.avg_response_sec).filter(v=>v!=null && v>0);
+  const avgResp = responseValues.length ? (responseValues.reduce((a,v)=>a+v,0)/responseValues.length) : 0;
+  const daySet  = new Set(ss.map(s=>s.timestamp?s.timestamp.slice(0,10):null).filter(Boolean));
+  const dailyAvg= daySet.size?Math.round(totTok/daySet.size):totTok;
+  const hourly  = {};
+  ss.forEach(s=>{ if(!s.timestamp)return; const h=new Date(s.timestamp).getHours(); hourly[h]=(hourly[h]||0)+s.total_tokens; });
+  const peakH   = Object.keys(hourly).reduce((a,b)=>hourly[a]>hourly[b]?a:b,0);
+  document.getElementById("cc-total-tokens").textContent = fmtK(totTok);
+  document.getElementById("cc-daily-avg").textContent    = "일평균 "+fmtK(dailyAvg)+" 토큰";
+  document.getElementById("cc-total-sessions").textContent = fmtNum(ss.length);
+  document.getElementById("cc-avg-dur").textContent      = avgResp>0 ? "평균 "+fmtMs(avgResp*1000) : "평균 —";
+  document.getElementById("cc-total-cost").textContent   = fmtCost(totCost);
+  document.getElementById("cc-cost-per").textContent     = "세션당 "+fmtCost(totCost/ss.length);
+  document.getElementById("cc-peak-hour").textContent    = peakH+"시";
+  document.getElementById("cc-peak-tok").textContent     = fmtK(hourly[peakH]||0)+" 토큰";
+}
+
+function renderCCDaily(){
+  destroyChart("ccDaily");
+  const daily={};
+  ccFiltered.forEach(s=>{
+    if(!s.timestamp) return;
+    const d=s.timestamp.slice(0,10);
+    if(!daily[d]) daily[d]={input:0,output:0,cache:0};
+    daily[d].input+=s.input_tokens; daily[d].output+=s.output_tokens;
+    daily[d].cache+=s.cache_read_tokens+s.cache_write_tokens;
+  });
+  const labels=Object.keys(daily).sort();
+  const toK=arr=>arr.map(v=>+(v/1000).toFixed(1));
+  charts.ccDaily=new Chart(document.getElementById("cc-chart-daily"),{
+    type:"bar",
+    data:{ labels:labels.map(d=>d.slice(5)),
+      datasets:[
+        {label:"Input",  data:toK(labels.map(d=>daily[d].input)),  backgroundColor:"#3b82f6",stack:"a"},
+        {label:"Output", data:toK(labels.map(d=>daily[d].output)), backgroundColor:"#22c55e",stack:"a"},
+        {label:"Cache",  data:toK(labels.map(d=>daily[d].cache)),  backgroundColor:"#94a3b8",stack:"a"},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"top",labels:{boxWidth:11,font:{size:11}}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
+              y:{ticks:{font:{size:10},callback:v=>v+"k"},grid:{color:themeGrid()}}}},
+  });
+}
+
+function renderCCHourly(){
+  destroyChart("ccHourly");
+  const h=new Array(24).fill(0);
+  ccFiltered.forEach(s=>{ if(s.timestamp) h[new Date(s.timestamp).getHours()]+=s.total_tokens; });
+  charts.ccHourly=new Chart(document.getElementById("cc-chart-hourly"),{
+    type:"line",
+    data:{ labels:Array.from({length:24},(_,i)=>i+"시"),
+      datasets:[{label:"토큰",data:h.map(v=>+(v/1000).toFixed(1)),
+        borderColor:"#3b82f6",backgroundColor:"rgba(59,130,246,.1)",fill:true,tension:0.4,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:9}}},
+              y:{ticks:{font:{size:10},callback:v=>v+"k"},grid:{color:themeGrid()}}}},
+  });
+}
+
+function renderCCModel(){
+  destroyChart("ccModel");
+  const byM={};
+  ccFiltered.forEach(s=>{ const m=s.model_detail||s.model||s.model_display||"Unknown"; byM[m]=(byM[m]||0)+s.total_tokens; });
+  const labels=Object.keys(byM);
+  charts.ccModel=new Chart(document.getElementById("cc-chart-model"),{
+    type:"doughnut",
+    data:{ labels,
+      datasets:[{data:labels.map(l=>byM[l]),
+        backgroundColor:labels.map((_,i)=>CC_MODEL_PALETTE[i%CC_MODEL_PALETTE.length]),borderWidth:2,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"right",labels:{boxWidth:11,font:{size:11},color:themeLegendText(),
+        generateLabels(c){
+          const d=c.data; const tot=d.datasets[0].data.reduce((a,b)=>a+b,0);
+          return d.labels.map((label,i)=>({
+            text:`${label} (${tot?Math.round(d.datasets[0].data[i]/tot*100):0}%)`,
+            fillStyle:d.datasets[0].backgroundColor[i],
+            color:themeLegendText(),
+            fontColor:themeLegendText(),
+            hidden:false,
+            index:i,
+          }));
+        }}}}},
+  });
+}
+
+function renderCCTask(){
+  destroyChart("ccTask");
+  const byT={};
+  ccFiltered.forEach(s=>{ const t=s.task_type||"other"; if(!byT[t])byT[t]={tokens:0,sessions:0}; byT[t].tokens+=s.total_tokens; byT[t].sessions+=1; });
+  const keys=Object.keys(TASK_LABELS).filter(k=>byT[k]);
+  charts.ccTask=new Chart(document.getElementById("cc-chart-task"),{
+    type:"bar",
+    data:{ labels:keys.map(k=>TASK_LABELS[k]),
+      datasets:[{label:"토큰(k)",data:keys.map(k=>+(byT[k].tokens/1000).toFixed(1)),
+        backgroundColor:keys.map(k=>TASK_COLORS[k])}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:(c)=>{ const k=keys[c.dataIndex]; return "세션: "+byT[k].sessions+"개"; }}}},
+      scales:{x:{ticks:{font:{size:10},callback:v=>v+"k"},grid:{color:themeGrid()}},
+              y:{grid:{display:false},ticks:{font:{size:11}}}}},
+  });
+}
+
+function renderCCProject(){
+  destroyChart("ccProject");
+  const byP={};
+  ccFiltered.forEach(s=>{ const p=s.project_name||"unknown"; byP[p]=(byP[p]||0)+s.total_tokens; });
+  const sorted=Object.entries(byP).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  charts.ccProject=new Chart(document.getElementById("cc-chart-project"),{
+    type:"bar",
+    data:{ labels:sorted.map(([p])=>p.length>18?p.slice(0,16)+"…":p),
+      datasets:[{label:"토큰(k)",data:sorted.map(([,v])=>+(v/1000).toFixed(1)),
+        backgroundColor:"#3b82f6",borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
+              y:{ticks:{font:{size:10},callback:v=>v+"k"},grid:{color:themeGrid()}}}},
+  });
+}
+
+function renderCCHeatmap(){
+  const hm={};
+  ccFiltered.forEach(s=>{
+    if(!s.timestamp) return;
+    const ts=new Date(s.timestamp);
+    const wd=ts.getDay()===0?6:ts.getDay()-1;
+    const key=`${wd}_${ts.getHours()}`;
+    hm[key]=(hm[key]||0)+s.total_tokens;
+  });
+  buildHeatmap("heatmap-container", hm, interpolateBlue);
+}
+
+function renderCCTable(){
+  const tbody=document.getElementById("cc-tbody");
+  document.getElementById("cc-session-count").textContent=ccFilteredRows.length;
+  if(!ccFilteredRows.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">데이터가 없습니다</td></tr>';
+    return;
+  }
+  const sorted=[...ccFilteredRows].sort((a,b)=>(b.timestamp||"")>(a.timestamp||"")?1:-1);
+  window._ccSorted=sorted;
+  tbody.innerHTML=sorted.map((s,i)=>{
+    const ts=s.timestamp?new Date(s.timestamp).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}):"—";
+    const proj=s.project_name.length>18?s.project_name.slice(0,16)+"…":s.project_name;
+    const prompt=(s.summary_prompt||s.first_prompt||"").slice(0,55)||"—";
+    const mbadge=ccModelBadge(s.model_detail||s.model||s.model_display);
+    const tbadge=ccTaskBadge(s.task_type);
+    const toks=`${fmtK(s.input_tokens)}/${fmtK(s.output_tokens)}`;
+    const resp=(s.avg_response_sec&&s.avg_response_sec>0)?fmtMs(s.avg_response_sec*1000):"—";
+    const cost=s.cost_usd>0?"$"+s.cost_usd.toFixed(4):"$0";
+    return `<tr style="cursor:pointer" onclick="openCCModal(${i})">
+      <td>${ts}</td><td title="${s.project_name}">${proj}</td>
+      <td class="ellipsis hide-sm" title="${prompt}">${prompt}</td>
+      <td>${mbadge}</td><td style="white-space:nowrap">${toks}</td>
+      <td class="hide-sm">${resp}</td><td>${cost}</td>
+    </tr>`;
+  }).join("");
+}
+
+function ccModelBadge(m){ return `<span class="badge badge-gray">${m||"?"}</span>`; }
+function ccTaskBadge(t){ const c={code_write:"badge-blue",debugging:"badge-red",refactoring:"badge-purple",testing:"badge-green",documentation:"badge-orange",planning:"badge-teal",ui_ux:"badge-purple",deployment:"badge-orange",performance:"badge-green",review:"badge-teal",other:"badge-gray"}; return `<span class="badge ${c[t]||"badge-gray"}">${TASK_LABELS[t]||t}</span>`; }
+
+function openCCModal(i){
+  const s=window._ccSorted?.[i]; if(!s) return;
+  document.getElementById("modal-body").innerHTML=`
+    <div class="modal-row"><span class="modal-key">작업 ID</span><span>${s.work_id||"—"}</span></div>
+    <div class="modal-row"><span class="modal-key">세션 ID</span><span>${s.session_id}</span></div>
+    <div class="modal-row"><span class="modal-key">프로젝트</span><span>${s.project_name}</span></div>
+    <div class="modal-row"><span class="modal-key">시작</span><span>${s.timestamp||"—"}</span></div>
+    <div class="modal-row"><span class="modal-key">종료</span><span>${s.last_timestamp||"—"}</span></div>
+    <div class="modal-row"><span class="modal-key">평균 응답시간</span><span>${(s.avg_response_sec&&s.avg_response_sec>0)?fmtMs(s.avg_response_sec*1000):"—"}</span></div>
+    <div class="modal-row"><span class="modal-key">모델</span><span>${s.model_detail||s.model}</span></div>
+    <div class="modal-row"><span class="modal-key">작업 유형</span><span>${TASK_LABELS[s.task_type]||s.task_type}</span></div>
+    <div class="modal-row"><span class="modal-key">Input 토큰</span><span>${fmtNum(s.input_tokens)}</span></div>
+    <div class="modal-row"><span class="modal-key">Output 토큰</span><span>${fmtNum(s.output_tokens)}</span></div>
+    <div class="modal-row"><span class="modal-key">Cache Read</span><span>${fmtNum(s.cache_read_tokens)}</span></div>
+    <div class="modal-row"><span class="modal-key">Cache Write</span><span>${fmtNum(s.cache_write_tokens)}</span></div>
+    <div class="modal-row"><span class="modal-key">총 토큰</span><span>${fmtNum(s.total_tokens)}</span></div>
+    <div class="modal-row"><span class="modal-key">예상 비용</span><span>$${s.cost_usd.toFixed(6)}</span></div>
+    <div style="margin-top:10px;font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:4px">작업 요약</div>
+    <div class="modal-prompt">${escHtml(s.summary_prompt||s.first_prompt||"(없음)")}</div>`;
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+["cc-days","cc-model","cc-project","cc-task"].forEach(id=>document.getElementById(id).addEventListener("change",applyCCFilters));
+document.getElementById("cc-refresh").onclick=loadClaude;
+document.getElementById("cc-export-json").onclick=()=>{
+  const blob=new Blob([JSON.stringify(ccFilteredRows,null,2)],{type:"application/json"});
+  dlBlob(blob,"claude_usage.json");
+};
+document.getElementById("cc-export-csv").onclick=()=>{
+  const hdr=["work_id","session_id","project_name","timestamp","last_timestamp","avg_response_sec","model_detail","task_type","input_tokens","output_tokens","total_tokens","cost_usd","summary_prompt"];
+  const rows=ccFilteredRows.map(s=>hdr.map(h=>{ const v=s[h]; return typeof v==="string"&&(v.includes(",")||v.includes("\n"))?`"${v.replace(/"/g,'""')}"`:v??""; }).join(","));
+  dlBlob(new Blob(["﻿"+[hdr.join(","),...rows].join("\n")],{type:"text/csv;charset=utf-8"}),"claude_usage.csv");
+};
+
+// ══════════════════════════════════════════════
+// ── COPILOT CHAT ──
+// ══════════════════════════════════════════════
+let cpRaw=null, cpFiltered=[];
+
+const CP_MODEL_PALETTE=["#3b82f6","#22c55e","#a855f7","#f97316","#14b8a6","#eab308","#ef4444","#6366f1","#ec4899","#06b6d4","#84cc16","#f43f5e"];
+const CP_MODE_PALETTE= ["#3b82f6","#94a3b8","#22c55e","#f97316","#a855f7","#14b8a6","#eab308"];
+
+async function loadCopilot(){
+  showStatus("Copilot Chat 데이터 로딩 중…");
+  try {
+    const res=await fetch("copilot_data.json?t="+Date.now());
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    cpRaw=await res.json();
+    showStatus("✓ Copilot Chat 데이터 로드 완료");
+    populateCPFilters();
+    applyCPFilters();
+  } catch(e){
+    showStatus("❌ copilot_data.json 로드 실패 — parse_copilot_logs.py 를 먼저 실행하세요. ("+e.message+")", true);
+  }
+}
+
+function populateCPFilters(){
+  const models=[...new Set((cpRaw.events||[]).map(e=>e.model).filter(Boolean))].sort();
+  const mSel=document.getElementById("cp-model");
+  mSel.innerHTML='<option value="">전체 모델</option>';
+  models.forEach(m=>{ const o=document.createElement("option"); o.value=o.textContent=m; mSel.appendChild(o); });
+
+  const modes=[...new Set((cpRaw.events||[]).map(e=>e.mode).filter(Boolean))].sort();
+  const modSel=document.getElementById("cp-mode");
+  modSel.innerHTML='<option value="">전체 모드</option>';
+  modes.forEach(m=>{ const o=document.createElement("option"); o.value=o.textContent=m; modSel.appendChild(o); });
+}
+
+function applyCPFilters(){
+  if(!cpRaw) return;
+  const days  = parseInt(document.getElementById("cp-days").value);
+  const model = document.getElementById("cp-model").value;
+  const mode  = document.getElementById("cp-mode").value;
+  const cutoff= days>0?new Date(Date.now()-days*86400000).toISOString():null;
+  cpFiltered=(cpRaw.events||[]).filter(e=>{
+    if(e.status==="markdown") return false;          // 내부 마크다운 이벤트 제외
+    if(cutoff && e.timestamp && e.timestamp<cutoff) return false;
+    if(model && e.model!==model) return false;
+    if(mode  && e.mode !==mode)  return false;
+    return true;
+  });
+  renderCopilot();
+}
+
+function renderCopilot(){
+  renderCPSummary(); renderCPDaily(); renderCPHourly();
+  renderCPModel();   renderCPMode();  renderCPDur();
+  renderCPHeatmap(); renderCPTable();
+}
+
+function renderCPSummary(){
+  const ee=cpFiltered; if(!ee.length){
+    ["cp-total-req","cp-success-rate","cp-avg-dur","cp-peak-hour"].forEach(id=>{document.getElementById(id).textContent="—";});
+    return;
+  }
+  const totalReq=ee.length;
+  const totalOk=ee.filter(e=>e.status==="success").length;
+  const durs=ee.map(e=>e.duration_ms).filter(Boolean);
+  const avgDur=durs.length?Math.round(durs.reduce((a,b)=>a+b,0)/durs.length):0;
+  const minDur=durs.length?Math.min(...durs):0;
+  const maxDur=durs.length?Math.max(...durs):0;
+  const daySet=new Set(ee.map(e=>e.timestamp?e.timestamp.slice(0,10):null).filter(Boolean));
+  const dailyAvg=daySet.size?Math.round(totalReq/daySet.size):totalReq;
+  const hourly={};
+  ee.forEach(e=>{ if(!e.timestamp)return; const h=new Date(e.timestamp).getHours(); hourly[h]=(hourly[h]||0)+1; });
+  const peakH=Object.keys(hourly).reduce((a,b)=>hourly[a]>hourly[b]?a:b,0);
+  document.getElementById("cp-total-req").textContent   = fmtNum(totalReq);
+  document.getElementById("cp-daily-avg").textContent   = "일평균 "+fmtNum(dailyAvg)+"건";
+  document.getElementById("cp-success-rate").textContent= totalReq?Math.round(totalOk/totalReq*100)+"%":"—";
+  document.getElementById("cp-success-count").textContent="성공 "+fmtNum(totalOk)+"건";
+  document.getElementById("cp-avg-dur").textContent     = fmtMs(avgDur);
+  document.getElementById("cp-dur-range").textContent   = durs.length?fmtMs(minDur)+" ~ "+fmtMs(maxDur):"—";
+  document.getElementById("cp-peak-hour").textContent   = peakH+"시";
+  document.getElementById("cp-peak-req").textContent    = "해당 시간 "+fmtNum(hourly[peakH]||0)+"건";
+}
+
+function renderCPDaily(){
+  destroyChart("cpDaily");
+  const daily={};
+  cpFiltered.forEach(e=>{
+    if(!e.timestamp) return;
+    const d=e.timestamp.slice(0,10);
+    if(!daily[d]) daily[d]={success:0,failure:0};
+    if(e.status==="success") daily[d].success++; else daily[d].failure++;
+  });
+  const labels=Object.keys(daily).sort();
+  charts.cpDaily=new Chart(document.getElementById("cp-chart-daily"),{
+    type:"bar",
+    data:{ labels:labels.map(d=>d.slice(5)),
+      datasets:[
+        {label:"성공",data:labels.map(d=>daily[d].success),backgroundColor:"#22c55e",stack:"a"},
+        {label:"실패",data:labels.map(d=>daily[d].failure),backgroundColor:"#ef4444",stack:"a"},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"top",labels:{boxWidth:11,font:{size:11}}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},
+              y:{ticks:{font:{size:10}},grid:{color:themeGrid()}}}},
+  });
+}
+
+function renderCPHourly(){
+  destroyChart("cpHourly");
+  const h=new Array(24).fill(0);
+  cpFiltered.forEach(e=>{ if(e.timestamp) h[new Date(e.timestamp).getHours()]++; });
+  charts.cpHourly=new Chart(document.getElementById("cp-chart-hourly"),{
+    type:"line",
+    data:{ labels:Array.from({length:24},(_,i)=>i+"시"),
+      datasets:[{label:"요청",data:h,borderColor:"#14b8a6",backgroundColor:"rgba(20,184,166,.1)",fill:true,tension:0.4,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:9}}},
+              y:{ticks:{font:{size:10}},grid:{color:themeGrid()}}}},
+  });
+}
+
+function renderCPModel(){
+  destroyChart("cpModel");
+  const byM={};
+  cpFiltered.forEach(e=>{ const m=e.model||"Unknown"; byM[m]=(byM[m]||0)+1; });
+  const labels=Object.keys(byM).sort((a,b)=>byM[b]-byM[a]);
+  charts.cpModel=new Chart(document.getElementById("cp-chart-model"),{
+    type:"doughnut",
+    data:{ labels,
+      datasets:[{data:labels.map(l=>byM[l]),
+        backgroundColor:labels.map((_,i)=>CP_MODEL_PALETTE[i%CP_MODEL_PALETTE.length]),
+        borderWidth:2,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"right",labels:{boxWidth:11,font:{size:10},color:themeLegendText(),
+        generateLabels(c){
+          const d=c.data; const tot=d.datasets[0].data.reduce((a,b)=>a+b,0);
+          return d.labels.map((label,i)=>({
+            text:`${label} (${tot?Math.round(d.datasets[0].data[i]/tot*100):0}%)`,
+            fillStyle:d.datasets[0].backgroundColor[i],
+            color:themeLegendText(),
+            fontColor:themeLegendText(),
+            hidden:false,
+            index:i,
+          }));
+        }}}}},
+  });
+}
+
+function renderCPMode(){
+  destroyChart("cpMode");
+  const byM={};
+  cpFiltered.forEach(e=>{ if(e.mode){ const m=e.mode; byM[m]=(byM[m]||0)+1; } });
+  const sorted=Object.entries(byM).sort((a,b)=>b[1]-a[1]);
+  charts.cpMode=new Chart(document.getElementById("cp-chart-mode"),{
+    type:"bar",
+    data:{ labels:sorted.map(([m])=>m.length>20?m.slice(0,18)+"…":m),
+      datasets:[{label:"요청",data:sorted.map(([,v])=>v),
+        backgroundColor:sorted.map((_,i)=>CP_MODE_PALETTE[i%CP_MODE_PALETTE.length]),
+        borderRadius:4}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{color:themeGrid()}},
+              y:{grid:{display:false},ticks:{font:{size:10}}}}},
+  });
+}
+
+function renderCPDur(){
+  destroyChart("cpDur");
+  const byM={};
+  cpFiltered.forEach(e=>{
+    if(e.model&&e.duration_ms){
+      if(!byM[e.model]) byM[e.model]={sum:0,cnt:0};
+      byM[e.model].sum+=e.duration_ms; byM[e.model].cnt++;
+    }
+  });
+  const sorted=Object.entries(byM).map(([m,v])=>[m,Math.round(v.sum/v.cnt)]).sort((a,b)=>b[1]-a[1]);
+  charts.cpDur=new Chart(document.getElementById("cp-chart-dur"),{
+    type:"bar",
+    data:{ labels:sorted.map(([m])=>m.length>18?m.slice(0,16)+"…":m),
+      datasets:[{label:"평균 응답시간(ms)",data:sorted.map(([,v])=>v),
+        backgroundColor:"#14b8a6",borderRadius:4}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      layout:{padding:{left:8,right:8,top:4,bottom:4}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>fmtMs(c.raw)}}},
+      scales:{x:{ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(1)+"s":v+"ms"},grid:{color:themeGrid()}},
+              y:{grid:{display:false},ticks:{font:{size:10},autoSkip:false,maxRotation:0,minRotation:0},beginAtZero:true}}},
+  });
+}
+
+function renderCPHeatmap(){
+  const hm={};
+  cpFiltered.forEach(e=>{
+    if(!e.timestamp) return;
+    const ts=new Date(e.timestamp);
+    const wd=ts.getDay()===0?6:ts.getDay()-1;
+    hm[`${wd}_${ts.getHours()}`]=(hm[`${wd}_${ts.getHours()}`]||0)+1;
+  });
+  buildHeatmap("cp-heatmap-container", hm, interpolateTeal);
+}
+
+// ── Copilot 세션 그루핑 ──
+const SESSION_GAP_MS = 15 * 60 * 1000;
+const CP_PAGE_SIZE   = 20;
+let cpSessions = [], cpPage = 0;
+
+function inferCPTaskType(modes, models){
+  const modeCount = {};
+  modes.forEach(m=>{ modeCount[m]=(modeCount[m]||0)+1; });
+  const topMode = Object.entries(modeCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||"";
+  const hasClaude = models.some(m=>(m||"").toLowerCase().includes("claude"));
+  if(topMode.includes("검색"))      return {label:"코드 검색",    badge:"badge-teal"};
+  if(topMode.includes("패치"))      return {label:"패치/수정",    badge:"badge-orange"};
+  if(topMode.includes("재시도"))    return {label:"오류 재시도",  badge:"badge-red"};
+  if(topMode.includes("서브"))      return {label:"서브 에이전트",badge:"badge-purple"};
+  if(topMode.includes("진행"))      return {label:"작업 진행",    badge:"badge-gray"};
+  if(topMode.includes("내부"))      return {label:"내부 처리",    badge:"badge-gray"};
+  if(topMode.includes("Chat")||topMode.includes("편집")){
+    return hasClaude
+      ? {label:"Claude 코드편집", badge:"badge-purple"}
+      : {label:"코드 편집",       badge:"badge-blue"};
+  }
+  return {label:"기타", badge:"badge-gray"};
+}
+
+function groupCPSessions(events){
+  const sorted=[...events].filter(e=>e.timestamp).sort((a,b)=>a.timestamp>b.timestamp?1:-1);
+  const sessions=[]; let cur=null;
+  sorted.forEach(e=>{
+    const t=new Date(e.timestamp).getTime();
+    if(!cur||t-cur.lastT>SESSION_GAP_MS){
+      if(cur) sessions.push(cur);
+      cur={start:e.timestamp,startT:t,lastT:t,events:[],models:[],modes:[],totalMs:0,success:0,fail:0};
+    }
+    cur.lastT=t; cur.end=e.timestamp; cur.events.push(e);
+    if(e.model) cur.models.push(e.model);
+    if(e.mode)  cur.modes.push(e.mode);
+    if(e.duration_ms) cur.totalMs+=e.duration_ms;
+    e.status==="success"?cur.success++:cur.fail++;
+  });
+  if(cur) sessions.push(cur);
+  return sessions.map(s=>{
+    const cnt=s.events.length;
+    const avgMs=cnt?Math.round(s.totalMs/cnt):0;
+    const mCnt={}; s.models.forEach(m=>mCnt[m]=(mCnt[m]||0)+1);
+    const mainModel=Object.entries(mCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||"—";
+    return {...s, cnt, avgMs, mainModel, taskType:inferCPTaskType(s.modes,s.models)};
+  }).reverse();
+}
+
+function renderCPTable(){
+  const tbody=document.getElementById("cp-tbody");
+  document.getElementById("cp-event-count").textContent=fmtNum(cpFiltered.length);
+  cpSessions=groupCPSessions(cpFiltered);
+  document.getElementById("cp-session-total").textContent=fmtNum(cpSessions.length);
+  if(!cpSessions.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">데이터가 없습니다</td></tr>';
+    document.getElementById("cp-pagination").innerHTML=""; return;
+  }
+  renderCPPage(0);
+}
+
+function renderCPPage(page){
+  cpPage=page;
+  const tbody=document.getElementById("cp-tbody");
+  const totalPages=Math.ceil(cpSessions.length/CP_PAGE_SIZE);
+  const slice=cpSessions.slice(page*CP_PAGE_SIZE,(page+1)*CP_PAGE_SIZE);
+  const maxMs=cpSessions.reduce((a,x)=>Math.max(a,x.totalMs),1);
+  tbody.innerHTML=slice.map(s=>{
+    const ts=new Date(s.start).toLocaleString("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+    const dur=s.totalMs>=60000?(s.totalMs/60000).toFixed(1)+"분":fmtMs(s.totalMs);
+    const pct=Math.round(s.totalMs/maxMs*72);
+    const workBar=`<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:${Math.max(pct,2)}px;height:6px;background:var(--teal);border-radius:3px"></div>
+      <span style="white-space:nowrap">${dur}</span></div>`;
+    const okRate=s.cnt?Math.round(s.success/s.cnt*100):0;
+    const statusBadge=okRate===100?'<span class="badge badge-green">100%</span>'
+      :`<span class="badge badge-orange">${okRate}%</span>`;
+    return `<tr>
+      <td style="white-space:nowrap">${ts}</td>
+      <td><span class="badge ${s.taskType.badge}">${s.taskType.label}</span></td>
+      <td style="font-size:.78rem;white-space:nowrap">${s.mainModel}</td>
+      <td style="text-align:center">${s.cnt}</td>
+      <td>${workBar}</td>
+      <td style="white-space:nowrap">${fmtMs(s.avgMs)}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }).join("");
+  const pg=document.getElementById("cp-pagination");
+  if(totalPages<=1){pg.innerHTML="";return;}
+  pg.innerHTML=`<button class="btn" ${page===0?"disabled":""} onclick="renderCPPage(${page-1})">◀ 이전</button>
+    <span style="color:var(--muted)">${page+1} / ${totalPages} 페이지</span>
+    <button class="btn" ${page>=totalPages-1?"disabled":""} onclick="renderCPPage(${page+1})">다음 ▶</button>`;
+}
+
+["cp-days","cp-model","cp-mode"].forEach(id=>document.getElementById(id).addEventListener("change",applyCPFilters));
+document.getElementById("cp-refresh").onclick=loadCopilot;
+document.getElementById("cp-export-csv").onclick=()=>{
+  const hdr=["timestamp","model","model_raw","mode","status","duration_ms"];
+  const rows=cpFiltered.map(e=>hdr.map(h=>{ const v=e[h]; return typeof v==="string"&&v.includes(",")?`"${v}"`:v??""; }).join(","));
+  dlBlob(new Blob(["﻿"+[hdr.join(","),...rows].join("\n")],{type:"text/csv;charset=utf-8"}),"copilot_usage.csv");
+};
+
+// ══════════════════════════════════════════════
+// 공통
+// ══════════════════════════════════════════════
+function dlBlob(blob,name){
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+}
+
+document.getElementById("modal-close").onclick=()=>document.getElementById("modal-overlay").classList.remove("open");
+document.getElementById("modal-overlay").onclick=(e)=>{ if(e.target===e.currentTarget) document.getElementById("modal-overlay").classList.remove("open"); };
+
+// ── 탭 전환 시 Copilot 데이터 지연 로드 ──
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    if(btn.dataset.tab==="copilot"&&!cpRaw) loadCopilot();
+  });
+});
+
+// 초기 로드
+loadClaude();
+</script>
+</body>
+</html>
